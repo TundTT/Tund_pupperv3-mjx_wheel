@@ -391,7 +391,9 @@ class PupperV3Env(PipelineEnv):
 
         # Physics step
         motor_targets = self._default_pose + lagged_action * self._action_scale
-        motor_targets = jp.clip(motor_targets, self.lowers, self.uppers)
+        # Disabled joint limit clamping to allow unrestricted rotation (e.g., wheels).
+        # Rely on MJCF joint ranges for physical constraints if any.
+        # motor_targets = jp.clip(motor_targets, self.lowers, self.uppers)
         pipeline_state = self.pipeline_step(state.pipeline_state, motor_targets)
         x, xd = pipeline_state.x, pipeline_state.xd
 
@@ -409,13 +411,14 @@ class PupperV3Env(PipelineEnv):
         first_contact = (state.info["feet_air_time"] > 0) * contact_filt_mm
         state.info["feet_air_time"] += self.dt
 
-        # Done if joint limits are reached or robot is falling
+        # Done if robot is falling; do not terminate on joint angle limits to allow wheel rotation
         up = jp.array([0.0, 0.0, 1.0])
         done = jp.dot(math.rotate(up, x.rot[self._torso_idx - 1]), up) < np.cos(
             self._terminal_body_angle
         )
-        done |= jp.any(joint_angles < self.lowers)
-        done |= jp.any(joint_angles > self.uppers)
+        # Disabled joint limit termination to allow continuous rotation
+        # done |= jp.any(joint_angles < self.lowers)
+        # done |= jp.any(joint_angles > self.uppers)
         done |= pipeline_state.x.pos[self._torso_idx - 1, 2] < self._terminal_body_z
 
         # Reward
