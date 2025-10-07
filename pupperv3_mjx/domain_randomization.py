@@ -79,7 +79,7 @@ def domain_randomize(
 
     friction, gain, bias, body_com, body_inertia, body_mass = rand(rng)
 
-    in_axes = jax.tree_map(lambda x: None, sys)
+    in_axes = jax.tree.map(lambda x: None, sys)
     in_axes = in_axes.tree_replace(
         {
             "geom_friction": 0,
