@@ -171,13 +171,23 @@ class PupperV3Env(PipelineEnv):
         sys = sys.tree_replace({"opt.timestep": physics_timestep})
 
         # override menagerie params for smoother policy
+        # override menagerie params for smoother policy
+        leg_indices = jp.array([0, 1, 3, 4, 6, 7, 9, 10])
+        wheel_indices = jp.array([2, 5, 8, 11])
+
+        # Set leg gains (PD control)
+        gainprm = sys.actuator_gainprm.at[leg_indices, 0].set(position_control_kp)
+        biasprm = sys.actuator_biasprm.at[leg_indices, 1].set(-position_control_kp)
+        biasprm = biasprm.at[leg_indices, 2].set(-dof_damping)
+
+        # Set wheel gains (Velocity control)
+        # Use position_control_kp as kv for now, but ensure no bias
+        gainprm = gainprm.at[wheel_indices, 0].set(position_control_kp)
+        biasprm = biasprm.at[wheel_indices, :].set(0.0)
+
         sys = sys.replace(
-            # dof_damping=sys.dof_damping.at[6:].set(DOF_DAMPING),
-            actuator_gainprm=sys.actuator_gainprm.at[:, 0].set(position_control_kp),
-            actuator_biasprm=sys.actuator_biasprm.at[:, 1]
-            .set(-position_control_kp)
-            .at[:, 2]
-            .set(-dof_damping),
+            actuator_gainprm=gainprm,
+            actuator_biasprm=biasprm,
         )
 
         # override the default joint angles with default_pose
@@ -192,7 +202,13 @@ class PupperV3Env(PipelineEnv):
             sys.mj_model, mujoco.mjtObj.mjOBJ_BODY.value, torso_name
         )
         assert self._torso_idx != -1, "torso not found"
-        self._action_scale = jp.array(action_scale)
+        
+        # Create vector action scale to allow higher velocity for wheels
+        self._action_scale = jp.full(12, action_scale)
+        wheel_indices = jp.array([2, 5, 8, 11])
+        # Set wheel action scale to 15.0 (rad/s) to utilize full control range
+        self._action_scale = self._action_scale.at[wheel_indices].set(15.0)
+
         self._angular_velocity_noise = angular_velocity_noise
         self._gravity_noise = gravity_noise
         self._motor_angle_noise = motor_angle_noise
@@ -390,7 +406,12 @@ class PupperV3Env(PipelineEnv):
         )
 
         # Physics step
-        motor_targets = self._default_pose + lagged_action * self._action_scale
+        # For wheels (indices 2, 5, 8, 11), we want velocity control, so we don't add default_pose (which is position).
+        # For legs, we want position control, so we add default_pose.
+        wheel_indices = jp.array([2, 5, 8, 11])
+        default_pose_for_calc = self._default_pose.at[wheel_indices].set(0.0)
+        
+        motor_targets = default_pose_for_calc + lagged_action * self._action_scale
         # Disabled joint limit clamping to allow unrestricted rotation (e.g., wheels).
         # Rely on MJCF joint ranges for physical constraints if any.
         # motor_targets = jp.clip(motor_targets, self.lowers, self.uppers)
