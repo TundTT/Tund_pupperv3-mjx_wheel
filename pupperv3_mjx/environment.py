@@ -538,6 +538,22 @@ class PupperV3Env(PipelineEnv):
         state.metrics["total_dist"] = math.normalize(x.pos[self._torso_idx - 1])[1]
         state.metrics.update(state.info["rewards"])
 
+        # Log termination reason
+        # 0: Not terminated
+        # 1: Orientation limit
+        # 2: Height limit
+        term_reason = jp.where(
+            jp.dot(math.rotate(up, x.rot[self._torso_idx - 1]), up) < np.cos(self._terminal_body_angle),
+            1.0,
+            0.0
+        )
+        term_reason = jp.where(
+            pipeline_state.x.pos[self._torso_idx - 1, 2] < self._terminal_body_z,
+            2.0,
+            term_reason
+        )
+        state.metrics["termination_reason"] = term_reason
+
         done = jp.float32(done)
         state = state.replace(pipeline_state=pipeline_state, obs=obs, reward=reward, done=done)
         return state
