@@ -206,8 +206,9 @@ class PupperV3Env(PipelineEnv):
         # Create vector action scale to allow higher velocity for wheels
         self._action_scale = jp.full(12, action_scale)
         wheel_indices = jp.array([2, 5, 8, 11])
-        # Set wheel action scale to 8.0 (rad/s) to utilize full control range
-        self._action_scale = self._action_scale.at[wheel_indices].set(8.0)
+        # Set wheel action scale to 25.0 (rad/s) to utilize full control range
+        # 25.0 rad/s * 0.0465 m (radius) ~= 1.16 m/s, sufficient for 0.75 m/s target
+        self._action_scale = self._action_scale.at[wheel_indices].set(25.0)
 
         self._angular_velocity_noise = angular_velocity_noise
         self._gravity_noise = gravity_noise
