@@ -133,7 +133,7 @@ def plot_debug_metrics(rewards_history, state_history):
     
     plt.show()
 
-def print_reward_summary(rewards_history):
+def print_reward_summary(rewards_history, state_history):
     """
     Prints a summary of the rewards.
     """

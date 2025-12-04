@@ -33,7 +33,7 @@ def run_sanity_check(env_kwargs):
     rewards_history, state_history = run_debug_episode(env, None, random_inference_fn, episode_length=200)
 
     # Print Summary
-    print_reward_summary(rewards_history)
+    print_reward_summary(rewards_history, state_history)
 
     # Plot Metrics
     plot_debug_metrics(rewards_history, state_history)
