@@ -26,14 +26,23 @@ def run_debug_episode(env, params, inference_fn, rng_seed=0, episode_length=500)
         'angular_vel': []
     }
     
+    # JIT compile functions for speed
+    jit_step = jax.jit(env.step)
+    if params is None:
+        # Handle random policy case where params is None
+        # We need to wrap inference_fn to handle None params if it doesn't already
+        jit_inference_fn = jax.jit(lambda p, o, r: inference_fn(p, o, r))
+    else:
+        jit_inference_fn = jax.jit(inference_fn)
+
     for _ in range(episode_length):
         step_rng, action_rng = jax.random.split(step_rng)
         
         # Get action from policy
-        action, _ = inference_fn(params, state.obs, action_rng)
+        action, _ = jit_inference_fn(params, state.obs, action_rng)
         
         # Step environment
-        state = env.step(state, action)
+        state = jit_step(state, action)
         
         # Collect Metrics
         for k, v in state.info['rewards'].items():
