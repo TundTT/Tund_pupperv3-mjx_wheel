@@ -45,8 +45,9 @@ def run_debug_episode(env, params, inference_fn, rng_seed=0, episode_length=500)
         state = jit_step(state, action)
         
         # Collect Metrics
+        # Collect Metrics
         for k, v in state.info['rewards'].items():
-            rewards_history[k].append(float(v))
+            rewards_history[k].append(v)
             
         # Collect State Data
         # Assuming standard PupperV3Env state structure
@@ -59,27 +60,36 @@ def run_debug_episode(env, params, inference_fn, rng_seed=0, episode_length=500)
         q = rot
         sinr_cosp = 2 * (q[0] * q[1] + q[2] * q[3])
         cosr_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2])
-        roll = np.arctan2(sinr_cosp, cosr_cosp)
+        roll = jp.arctan2(sinr_cosp, cosr_cosp)
 
         sinp = 2 * (q[0] * q[2] - q[3] * q[1])
-        if np.abs(sinp) >= 1:
-            pitch = np.copysign(np.pi / 2, sinp)
-        else:
-            pitch = np.arcsin(sinp)
+        # Use jp.where for JAX compatibility instead of if/else
+        pitch = jp.where(
+            jp.abs(sinp) >= 1,
+            jp.copysign(jp.pi / 2, sinp),
+            jp.arcsin(sinp)
+        )
             
-        state_history['z_height'].append(float(pos[2]))
-        state_history['roll'].append(float(roll))
-        state_history['pitch'].append(float(pitch))
-        state_history['action_mag'].append(float(jp.linalg.norm(action)))
+        state_history['z_height'].append(pos[2])
+        state_history['roll'].append(roll)
+        state_history['pitch'].append(pitch)
+        state_history['action_mag'].append(jp.linalg.norm(action))
         
         # Velocity
         vel = state.pipeline_state.xd.vel[0]
         ang = state.pipeline_state.xd.ang[0]
-        state_history['linear_vel'].append(float(jp.linalg.norm(vel)))
-        state_history['angular_vel'].append(float(jp.linalg.norm(ang)))
+        state_history['linear_vel'].append(jp.linalg.norm(vel))
+        state_history['angular_vel'].append(jp.linalg.norm(ang))
 
         if state.done:
             break
+            
+    # Convert history to numpy arrays at the end to minimize GPU-CPU sync
+    for k in rewards_history:
+        rewards_history[k] = np.array([float(x) for x in rewards_history[k]])
+        
+    for k in state_history:
+        state_history[k] = np.array([float(x) for x in state_history[k]])
             
     return rewards_history, state_history
 

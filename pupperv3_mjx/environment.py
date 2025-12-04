@@ -378,7 +378,7 @@ class PupperV3Env(PipelineEnv):
         )  # store 15 steps of history
         obs = self._get_obs(pipeline_state, state_info, obs_history)
         reward, done = jp.zeros(2, dtype=float)
-        metrics = {"total_dist": 0.0}
+        metrics = {"total_dist": 0.0, "termination_reason": 0.0}
         for k in state_info["rewards"]:
             metrics[k] = state_info["rewards"][k]
         state = State(
