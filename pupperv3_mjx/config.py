@@ -60,6 +60,8 @@ def get_config():
                         knee_collision=0.0,
                         # Penalize body hitting ground,
                         body_collision=0.0,
+                        # Reward wheels contact
+                        wheels_contact=0.0,
                     )
                 ),
                 # Tracking reward = exp(-error^2/sigma).

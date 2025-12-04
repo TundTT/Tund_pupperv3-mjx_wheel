@@ -154,3 +154,8 @@ def reward_geom_collision(pipeline_state: base.State, geom_ids: np.array) -> jax
             * (pipeline_state.contact.dist < 0.0)
         )
     return jp.clip(contact, -1000.0, 1000.0)
+
+
+def reward_wheels_contact(contact_filt: jax.Array) -> jax.Array:
+    # Reward having wheels in contact with the ground
+    return jp.clip(jp.sum(contact_filt), -1000.0, 1000.0)

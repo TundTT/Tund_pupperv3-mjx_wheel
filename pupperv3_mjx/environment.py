@@ -496,6 +496,7 @@ class PupperV3Env(PipelineEnv):
                 pipeline_state, self._upper_leg_geom_ids
             ),
             "body_collision": rewards.reward_geom_collision(pipeline_state, self._torso_geom_ids),
+            "wheels_contact": rewards.reward_wheels_contact(contact_filt_mm),
         }
         rewards_dict = {
             k: v * self._reward_config.rewards.scales[k] for k, v in rewards_dict.items()
