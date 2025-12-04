@@ -145,3 +145,13 @@ def print_reward_summary(rewards_history):
         if np.sum(np.abs(vals)) > 1e-6:
             print(f"{k:<30} | {np.mean(vals):.4f}     | {np.min(vals):.4f}     | {np.max(vals):.4f}")
     print("-" * 70)
+
+    # Print State Summary
+    print("\n--- State Summary ---")
+    print(f"{'Metric':<30} | {'Mean':<10} | {'Max':<10}")
+    print("-" * 70)
+    for k in ['linear_vel', 'angular_vel', 'z_height']:
+        if k in state_history:
+            vals = state_history[k]
+            print(f"{k:<30} | {np.mean(vals):.4f}     | {np.max(vals):.4f}")
+    print("-" * 70)
