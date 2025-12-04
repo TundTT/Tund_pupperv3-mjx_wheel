@@ -76,10 +76,10 @@ class PupperV3Env(PipelineEnv):
             )
         ),
         foot_site_names: List[str] = [
-            "leg_front_r_3_foot_site",
-            "leg_front_l_3_foot_site",
-            "leg_back_r_3_foot_site",
-            "leg_back_l_3_foot_site",
+            "wheel_front_r_site",
+            "wheel_front_l_site",
+            "wheel_back_r_site",
+            "wheel_back_l_site",
         ],
         torso_name: str = "base_link",
         upper_leg_body_names: List[str] = [
@@ -89,10 +89,10 @@ class PupperV3Env(PipelineEnv):
             "leg_back_l_2",
         ],
         lower_leg_body_names: List[str] = [
-            "leg_front_r_3",
-            "leg_front_l_3",
-            "leg_back_r_3",
-            "leg_back_l_3",
+            "wheel_front_r",
+            "wheel_front_l",
+            "wheel_back_r",
+            "wheel_back_l",
         ],
         resample_velocity_step: int = 500,
         linear_velocity_x_range: Tuple[float, float] = (-0.75, 0.75),
@@ -206,8 +206,8 @@ class PupperV3Env(PipelineEnv):
         # Create vector action scale to allow higher velocity for wheels
         self._action_scale = jp.full(12, action_scale)
         wheel_indices = jp.array([2, 5, 8, 11])
-        # Set wheel action scale to 15.0 (rad/s) to utilize full control range
-        self._action_scale = self._action_scale.at[wheel_indices].set(15.0)
+        # Set wheel action scale to 8.0 (rad/s) to utilize full control range
+        self._action_scale = self._action_scale.at[wheel_indices].set(8.0)
 
         self._angular_velocity_noise = angular_velocity_noise
         self._gravity_noise = gravity_noise
@@ -474,12 +474,9 @@ class PupperV3Env(PipelineEnv):
                 pipeline_state.qfrc_actuator[6:], pipeline_state.qvel[6:]
             ),
             "action_rate": rewards.reward_action_rate(action, state.info["last_act"]),
-            "stand_still": rewards.reward_stand_still(
-                state.info["command"], joint_angles, self._default_pose, 0.1
-            ),
-            "stand_still_joint_velocity": rewards.reward_stand_still(
-                state.info["command"], joint_vel, jp.zeros(12), self._stand_still_command_threshold
-            ),
+            "action_rate": rewards.reward_action_rate(action, state.info["last_act"]),
+            "stand_still": 0.0, # Disabled
+            "stand_still_joint_velocity": 0.0, # Disabled
             "abduction_angle": rewards.reward_abduction_angle(
                 joint_angles,
                 desired_abduction_angles=self._desired_abduction_angles,
@@ -489,12 +486,7 @@ class PupperV3Env(PipelineEnv):
                 first_contact,
                 state.info["command"],
             ),
-            "foot_slip": rewards.reward_foot_slip(
-                pipeline_state,
-                contact_filt_cm,
-                feet_site_id=self._feet_site_id,
-                lower_leg_body_id=self._lower_leg_body_id,
-            ),
+            "foot_slip": 0.0, # Disabled
             "termination": rewards.reward_termination(
                 done,
                 state.info["step"],
