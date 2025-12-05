@@ -5,9 +5,18 @@ import matplotlib.pyplot as plt
 from brax import envs
 from brax.training.agents.ppo import networks as ppo_networks
 
-def run_debug_episode(env, params, inference_fn, rng_seed=0, episode_length=500):
+def run_debug_episode(env, params, inference_fn, rng_seed=0, episode_length=500, command_override=None):
     """
     Runs a single episode and collects detailed metrics and state data.
+    
+    Args:
+        env: The environment.
+        params: Policy parameters.
+        inference_fn: Inference function.
+        rng_seed: Random seed.
+        episode_length: Length of the episode.
+        command_override: Optional JAX array of shape (3,) [lin_vel_x, lin_vel_y, ang_vel_yaw].
+                          If provided, this command will be forced at every step.
     """
     rng = jax.random.PRNGKey(rng_seed)
     reset_rng, step_rng = jax.random.split(rng)
@@ -38,13 +47,21 @@ def run_debug_episode(env, params, inference_fn, rng_seed=0, episode_length=500)
     for _ in range(episode_length):
         step_rng, action_rng = jax.random.split(step_rng)
         
+        # Override command if provided
+        if command_override is not None:
+            # We need to update state.info['command']
+            # Since state is a frozen struct, we use replace.
+            # info is a dict, so we copy and update.
+            new_info = state.info.copy()
+            new_info['command'] = command_override
+            state = state.replace(info=new_info)
+        
         # Get action from policy
         action, _ = jit_inference_fn(params, state.obs, action_rng)
         
         # Step environment
         state = jit_step(state, action)
         
-        # Collect Metrics
         # Collect Metrics
         for k, v in state.info['rewards'].items():
             rewards_history[k].append(v)
@@ -155,3 +172,33 @@ def print_reward_summary(rewards_history, state_history):
             vals = state_history[k]
             print(f"{k:<30} | {np.mean(vals):.4f}     | {np.max(vals):.4f}")
     print("-" * 70)
+
+def print_reward_distribution(rewards_history):
+    """
+    Prints a detailed distribution of rewards to help with tuning.
+    Calculates the contribution of each term to the total reward.
+    """
+    print("\n=== Reward Distribution Analysis ===")
+    
+    # Calculate total reward per step
+    total_rewards = np.zeros(len(next(iter(rewards_history.values()))))
+    for v in rewards_history.values():
+        total_rewards += v
+        
+    avg_total_reward = np.mean(total_rewards)
+    print(f"Average Total Reward per Step: {avg_total_reward:.4f}")
+    print("-" * 90)
+    print(f"{'Reward Name':<30} | {'Mean':<10} | {'% of Total':<12} | {'Std Dev':<10} | {'Min':<10} | {'Max':<10}")
+    print("-" * 90)
+    
+    # Sort by absolute mean value to show most impactful terms first
+    sorted_items = sorted(rewards_history.items(), key=lambda x: abs(np.mean(x[1])), reverse=True)
+    
+    for k, v in sorted_items:
+        vals = np.array(v)
+        mean_val = np.mean(vals)
+        if np.abs(mean_val) > 1e-6:
+            # Avoid division by zero
+            percent = (mean_val / avg_total_reward * 100) if abs(avg_total_reward) > 1e-6 else 0.0
+            print(f"{k:<30} | {mean_val:.4f}     | {percent:>9.1f}%   | {np.std(vals):.4f}     | {np.min(vals):.4f}     | {np.max(vals):.4f}")
+    print("-" * 90)

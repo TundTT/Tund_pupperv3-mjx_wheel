@@ -39,3 +39,46 @@ def run_sanity_check(env_kwargs):
     plot_debug_metrics(rewards_history, state_history)
     
     return rewards_history, state_history
+
+def run_post_training_eval(env, params, inference_fn):
+    """
+    Runs a series of evaluation episodes with specific commands to analyze policy behavior.
+    
+    Scenarios:
+    1. Random Sampling (Natural behavior)
+    2. Forward Command (0.75 m/s)
+    3. Spin Command (0.75 rad/s)
+    4. Sideways Command (0.75 m/s)
+    """
+    print("Starting Post-Training Evaluation...")
+    
+    scenarios = [
+        ("Random Sampling", None),
+        ("Forward Command (0.75 m/s)", jp.array([0.75, 0.0, 0.0])),
+        ("Spin Command (0.75 rad/s)", jp.array([0.0, 0.0, 0.75])),
+        ("Sideways Command (0.75 m/s)", jp.array([0.0, 0.75, 0.0]))
+    ]
+    
+    results = {}
+    
+    from pupperv3_mjx.debug_utils import print_reward_distribution
+    
+    for name, cmd in scenarios:
+        print(f"\n{'='*80}")
+        print(f"Running Scenario: {name}")
+        print(f"{'='*80}")
+        
+        rewards, state = run_debug_episode(
+            env, 
+            params, 
+            inference_fn, 
+            episode_length=500, 
+            command_override=cmd
+        )
+        
+        print_reward_distribution(rewards)
+        plot_debug_metrics(rewards, state)
+        
+        results[name] = (rewards, state)
+        
+    return results
