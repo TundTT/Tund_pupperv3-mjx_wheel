@@ -1,3 +1,4 @@
+
 import jax
 from jax import numpy as jp
 from brax.base import Motion, Transform
@@ -14,6 +15,11 @@ def reward_lin_vel_z(xd: Motion) -> jax.Array:
 def reward_ang_vel_xy(xd: Motion) -> jax.Array:
     # Penalize xy axes base angular velocity
     return jp.clip(jp.sum(jp.square(xd.ang[0, :2])), -1000.0, 1000.0)
+
+
+def reward_ang_vel_z(xd: Motion) -> jax.Array:
+    # Penalize z axis base angular velocity (Quadratic cost for strong gradient)
+    return jp.clip(jp.square(xd.ang[0, 2]), -1000.0, 1000.0)
 
 
 def reward_tracking_orientation(

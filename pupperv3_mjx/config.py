@@ -28,6 +28,8 @@ def get_config():
                         lin_vel_z=0.0,
                         # Penalize the base roll and pitch rate. L2 penalty.
                         ang_vel_xy=0.0,
+                        # Penalize the base yaw rate. L2 penalty.
+                        ang_vel_z=0.0,
                         # Penalize non-zero roll and pitch angles. L2 penalty.
                         orientation=0.0,
                         # Track desired body orientation
@@ -65,7 +67,7 @@ def get_config():
                     )
                 ),
                 # Tracking reward = exp(-error^2/sigma).
-                tracking_sigma=0.0,
+                tracking_sigma=0.25,
             )
         )
         return default_config

@@ -464,6 +464,7 @@ class PupperV3Env(PipelineEnv):
             ),
             "lin_vel_z": rewards.reward_lin_vel_z(xd),
             "ang_vel_xy": rewards.reward_ang_vel_xy(xd),
+            "ang_vel_z": rewards.reward_ang_vel_z(xd),
             "orientation": rewards.reward_orientation(x),
             "torques": rewards.reward_torques(
                 pipeline_state.qfrc_actuator
@@ -474,7 +475,6 @@ class PupperV3Env(PipelineEnv):
             "mechanical_work": rewards.reward_mechanical_work(
                 pipeline_state.qfrc_actuator[6:], pipeline_state.qvel[6:]
             ),
-            "action_rate": rewards.reward_action_rate(action, state.info["last_act"]),
             "action_rate": rewards.reward_action_rate(action, state.info["last_act"]),
             "stand_still": 0.0, # Disabled
             "stand_still_joint_velocity": 0.0, # Disabled
